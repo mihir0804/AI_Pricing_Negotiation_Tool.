@@ -1,0 +1,21 @@
+# Orchestration
+prefect==2.14.0
+
+# Web Scraping
+playwright==1.39.0
+
+# Data Handling
+pandas==2.1.1
+sqlalchemy==2.0.22
+psycopg2-binary==2.9.9
+
+# Data Validation
+pydantic==2.4.2
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# ML / Sentiment Analysis
+transformers==4.34.1
+torch==2.1.0
+sentencepiece==0.1.99

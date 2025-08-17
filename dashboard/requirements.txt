@@ -1,0 +1,13 @@
+# Dashboard Framework
+streamlit==1.28.0
+
+# Data
+pandas==2.1.1
+sqlalchemy==2.0.22
+psycopg2-binary==2.9.9
+
+# Visualization
+plotly==5.17.0
+
+# Environment Variables
+python-dotenv==1.0.0

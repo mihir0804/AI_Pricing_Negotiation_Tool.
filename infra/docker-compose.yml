@@ -1,0 +1,94 @@
+version: "3.9"
+
+networks:
+  main:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ai_pricing_db
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: pricing
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - main
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d pricing"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.api
+    container_name: ai_pricing_api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../api:/app/api
+      - ../etl:/app/etl
+      - ../ml:/app/ml
+    networks:
+      - main
+
+  dashboard:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: ai_pricing_dashboard
+    command: streamlit run dashboard/app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    volumes:
+      - ../dashboard:/app/dashboard
+    networks:
+      - main
+
+  bot:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.bot
+    container_name: ai_pricing_bot
+    # Assuming the bot is a service that needs to run, e.g., a Telegram/Slack bot or a web-based chat interface
+    # For now, we can have it run a script and keep it alive.
+    command: tail -f /dev/null # Keep container running
+    env_file: .env
+    depends_on:
+      - api
+    volumes:
+      - ../bot:/app/bot
+    networks:
+      - main
+
+  prefect:
+    image: prefecthq/prefect:2-latest
+    container_name: ai_pricing_prefect
+    command: prefect server start --host 0.0.0.0
+    ports:
+      - "4200:4200"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://app:app@db:5432/pricing
+    networks:
+      - main
+
+volumes:
+  pgdata:
+    driver: local
